@@ -1,4 +1,4 @@
-import type { CSVRow } from '../types';
+import { MarketCapCategory, type CategorizedStock, type CategorizedStocksResult, type CSVRow, type ProcessResult, type StockData } from '../types';
 
 /**
  * Find stocks within specified percentage threshold of their all-time high
@@ -175,9 +175,152 @@ export const addTradingViewSymbols = (data: CSVRow[]): CSVRow[] => {
     if (symbolKey && row[symbolKey]) {
       return {
         ...row,
-        "TV SYMBOL": `NSE:${row[symbolKey]}`
+        "TV SYMBOL": `NSE:${row[symbolKey]}`,
+        "Category": getCategoryForStock(row)
       };
     }
     return row;
   });
 };
+
+
+/**
+ * Categorizes stocks based on market capitalization
+ * Large Cap: > 20,000 Crore INR
+ * Mid Cap: 5,000 to 20,000 Crore INR
+ * Small Cap: 500 to 5,000 Crore INR
+ * Micro Cap: < 500 Crore INR
+ * 
+ * @param stocksData - Array of stock data objects
+ * @returns Object with stocks categorized by market cap
+ */
+function categorizeStocksByMarketCap(stocksData: StockData[]): CategorizedStocksResult {
+  // Define category thresholds in INR
+  const LARGE_CAP_THRESHOLD: number = 200000000000; // 20,000 Crore INR
+  const MID_CAP_THRESHOLD: number = 50000000000;    // 5,000 Crore INR
+  const SMALL_CAP_THRESHOLD: number = 5000000000;   // 500 Crore INR
+  
+  // Initialize categories
+  const categories: CategorizedStocksResult = {
+    largeCap: [],
+    midCap: [],
+    smallCap: [],
+    microCap: [],
+    unknown: []
+  };
+  
+  stocksData.forEach((stock: StockData) => {
+    const category = determineCategory(stock);
+    
+    const categorizedStock: CategorizedStock = {
+      symbol: stock.Symbol,
+      description: stock.Description,
+      marketCap: stock["Market capitalization"],
+      marketCapCurrency: stock["Market capitalization - Currency"]
+    };
+    
+    switch(category) {
+      case MarketCapCategory.LARGE_CAP:
+        categories.largeCap.push(categorizedStock);
+        break;
+      case MarketCapCategory.MID_CAP:
+        categories.midCap.push(categorizedStock);
+        break;
+      case MarketCapCategory.SMALL_CAP:
+        categories.smallCap.push(categorizedStock);
+        break;
+      case MarketCapCategory.MICRO_CAP:
+        categories.microCap.push(categorizedStock);
+        break;
+      default:
+        categories.unknown.push(categorizedStock);
+        break;
+    }
+  });
+  
+  return categories;
+  
+  /**
+   * Determines the category of a stock based on its market capitalization
+   * @param stock - Stock data object
+   * @returns Category name
+   */
+  function determineCategory(stock: StockData): MarketCapCategory {
+    // Extract market cap value and currency
+    const marketCap = stock["Market capitalization"];
+    
+    // Handle missing market cap
+    if (!marketCap || marketCap === "" || isNaN(Number(marketCap))) {
+      return MarketCapCategory.UNKNOWN;
+    }
+    
+    // Convert market cap to number
+    const marketCapValue: number = Number(marketCap);
+    
+    // Categorize based on thresholds
+    if (marketCapValue >= LARGE_CAP_THRESHOLD) {
+      return MarketCapCategory.LARGE_CAP;
+    } else if (marketCapValue >= MID_CAP_THRESHOLD) {
+      return MarketCapCategory.MID_CAP;
+    } else if (marketCapValue >= SMALL_CAP_THRESHOLD) {
+      return MarketCapCategory.SMALL_CAP;
+    } else {
+      return MarketCapCategory.MICRO_CAP;
+    }
+  }
+}
+
+/**
+ * Example usage with sample data
+ */
+export function processStocksData(stocksData: StockData[]): ProcessResult {
+  const categorizedStocks = categorizeStocksByMarketCap(stocksData);
+  
+  // Summary information
+  const summary = {
+    total: stocksData.length,
+    largeCap: categorizedStocks.largeCap.length,
+    midCap: categorizedStocks.midCap.length,
+    smallCap: categorizedStocks.smallCap.length,
+    microCap: categorizedStocks.microCap.length,
+    unknown: categorizedStocks.unknown.length
+  };
+  
+  return {
+    summary,
+    categorizedStocks
+  };
+}
+
+/**
+ * Get category for a single stock
+ * @param stock - Stock data object
+ * @returns The market cap category
+ */
+export function getCategoryForStock(stock: CSVRow): MarketCapCategory {
+  const LARGE_CAP_THRESHOLD: number = 200000000000; // 20,000 Crore INR
+  const MID_CAP_THRESHOLD: number = 50000000000;    // 5,000 Crore INR
+  const SMALL_CAP_THRESHOLD: number = 5000000000;   // 500 Crore INR
+  
+  // Extract market cap value
+  const marketCap = stock["Market capitalization"];
+  
+  // Handle missing market cap
+  if (!marketCap || marketCap === "" || isNaN(Number(marketCap))) {
+    return MarketCapCategory.UNKNOWN;
+  }
+  
+  // Convert market cap to number
+  const marketCapValue: number = Number(marketCap);
+  
+  // Categorize based on thresholds
+  if (marketCapValue >= LARGE_CAP_THRESHOLD) {
+    return MarketCapCategory.LARGE_CAP;
+  } else if (marketCapValue >= MID_CAP_THRESHOLD) {
+    return MarketCapCategory.MID_CAP;
+  } else if (marketCapValue >= SMALL_CAP_THRESHOLD) {
+    return MarketCapCategory.SMALL_CAP;
+  } else {
+    return MarketCapCategory.MICRO_CAP;
+  }
+}

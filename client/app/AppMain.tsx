@@ -6,6 +6,7 @@ import { findStocksWithinThreshold, findColumnNames, findStocksAtAllTimeHigh, so
 
 const PERCENT_THRESHOLD = 20;
 const RECORDS_PER_PAGE = 10;
+const ALL_STOCKS_PERCENT_THRESHOLD = 100;
 
 export function AppMain(): React.ReactElement {
   const [parsedData, setParsedData] = useState<CSVRow[]>([]);
@@ -28,7 +29,7 @@ export function AppMain(): React.ReactElement {
 
   const stocksAtAllTimeHigh= React.useMemo(() => {
     if (!parsedData || parsedData.length === 0) return [];
-    return findStocksAtAllTimeHigh(parsedData, priceColumn, highColumn);
+    return findStocksAtAllTimeHigh(parsedData, priceColumn, highColumn,ALL_STOCKS_PERCENT_THRESHOLD);
   }, [parsedData, priceColumn, highColumn]);
 
 
@@ -52,7 +53,7 @@ export function AppMain(): React.ReactElement {
             data={sortStocksByProximityToATH(stocksAtAllTimeHigh, priceColumn, highColumn)} 
             priceColumn={priceColumn}
             highColumn={highColumn}
-            percentThreshold={0}
+            percentThreshold={ALL_STOCKS_PERCENT_THRESHOLD}
             RECORDS_PER_PAGE={RECORDS_PER_PAGE}
           />
         </div>
