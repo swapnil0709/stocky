@@ -1,5 +1,4 @@
-
-import { Welcome } from "~/welcome/welcome";
+import AppMain from "~/AppMain";
 import type { Route } from "./+types/home";
 
 
@@ -11,5 +10,5 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
-  return <Welcome />;
+  return <AppMain />;
 }
